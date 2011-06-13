@@ -54,25 +54,35 @@
   color: #89909A;
 }
 
-.jqt_calendar td.today {
+.jqt_calendar td.selected {
   background-position: 90px 0px;
   color: white;
 }
-.jqt_calendar td.selected {
-  background-position: 45px 0px;
+.jqt_calendar td.selected.date_has_event {
+  background-position: 90px 43px;
   color: white;
+}
+
+.jqt_calendar td.today {
+  background-position: 135px 0px;
+  color: white;
+}
+.jqt_calendar td.today.date_has_event {
+  background-position: 135px 43px;
+  color: white;
+}
+
+.jqt_calendar td.unselectable {
+  background-position: 45px 0px;
+  color: #AAA;
+}
+.jqt_calendar td.unselectable.date_has_event {
+  background-position: 45px 43px;
+  color: #AAA;
 }
 
 .jqt_calendar td.date_has_event {
   background-position: 0px -43px;
-}
-.jqt_calendar td.today.date_has_event {
-  background-position: 90px 43px;
-  color: white;
-}
-.jqt_calendar td.selected.date_has_event {
-  background-position: 45px 43px;
-  color: white;
 }
 
 .jqt_calendar thead {
