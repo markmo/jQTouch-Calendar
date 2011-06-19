@@ -39,6 +39,9 @@ Disabled the bottom bar to show the click area in color
     text-align: center;
     vertical-align: middle;
     width: 45px;
+    cursor: default;
+}
+.jqt_calendar td:not(.unselectable) {
     cursor: pointer;
 }
 .jqt_calendar td:last-child, .jqt_calendar th:last-child {
@@ -73,12 +76,13 @@ Disabled the bottom bar to show the click area in color
 }
 
 .jqt_calendar td.unselectable {
-    background-position: 45px 0px;
-    color: #AAA;
+    background: url(images/cells.png) repeat scroll 0 0 transparent;
+    background-position: 135px 0px;
+    color: #CBC9D0;
 }
 .jqt_calendar td.unselectable.date_has_event {
-    background-position: 45px 43px;
-    color: #AAA;
+    background-position: 135px 43px;
+    color: #CBC9D0;
 }
 
 .jqt_calendar td.date_has_event {
@@ -133,6 +137,7 @@ Disabled the bottom bar to show the click area in color
     border: none !important;
     min-height: 30px;
     font-weight: bold;
+    font-size: 13px;
 }
 .jqt_calendar ul li span {
     font-size: 10px;

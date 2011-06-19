@@ -23,7 +23,6 @@
 	days: Array of titles for the columns (default: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'])
 	months: Array of month names (default: ['January','February','March','April','May','June','July','August','September','October','November','December'])
 	weekstart: index of the position in the days array the week is to start on (default: 1)
-	callback: function to call on selecting a date, passing the date object
 	unselectableDateRules: {
 	    notBeforeDate: Date,
 	    notAfterDate: Date,
@@ -33,15 +32,19 @@
 	                            jqt.calendar.AnnualDate(month:int(1..12), day:int(1..31)) or
 	                            jqt.calendar.NthDayOfWeekInMonth(month:int(1..12), dayOfWeek:int(0..6), week:int(1..5))
 	}
+	doneBtn: id of button element to invoke callback
+	callback: function to call on selecting a date, passing the date object
 
 */
+
+var dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+var monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 (function($) {
     if ($.jQTouch) {
         $.jQTouch.addExtension(function Calendar(jQT) {
 
-            // Load the calendar for the given date
-            jQuery.fn.getCalendar = function(options) {
+            jQuery.fn.createCalendar = function(options) {
                 var defaults = {
                     date: new Date(),
                     days: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
@@ -51,6 +54,23 @@
                 }
                 var settings = $.extend({},
                 defaults, options);
+
+                new FastButton($('#' + settings.doneBtn).get(0), function() {
+                    var settings = $el.data('settings');
+                    if (settings.date) {
+                        if (settings.callback != undefined) {
+                            settings.callback(settings.date);
+                        }
+                    } else {
+                        alert("No date has been selected!");
+                    }
+                    return false;
+                });
+                $(this).getCalendar(settings);
+            };
+
+            // Load the calendar for the given date
+            jQuery.fn.getCalendar = function(settings) {
 
                 return this.each(function() {
                     var $el = $(this);
@@ -62,7 +82,7 @@
                     $el.data('settings', settings);
 
                     //Read events from markup
-                    $el.loadEvents();
+                    //$el.loadEvents();
 
                     // clear existing calendar
                     $el.empty();
@@ -80,10 +100,17 @@
                     $el.setToday();
 
                     // If the selected date has events, load them
-                    $el.setSelected(settings.date);
-
+                    var day = settings.date.getDate();
+                    var month = settings.date.getMonth();
+                    var year = settings.date.getFullYear();
+                    var column = settings.date.getDay();
+                    if (!$el.isUnselectable(day, month, year, column)) {
+                        $el.setSelected(settings.date);
+                    } else {
+                        settings.date = '';
+                        $el.data('settings', settings);
+                    }
                 });
-
             };
 
             //Markup Reading
@@ -113,34 +140,30 @@
                 }
             }
 
-
-            //Markup Generation
-            jQuery.fn.dayMarkup = function(format, day, month, year, column) {
+            jQuery.fn.isUnselectable = function(day, month, year, column) {
                 var $el = $(this);
                 var settings = $el.data('settings');
-                var this_day = $('<td/>');
-                
                 var rules = settings.unselectableDateRules;
                 if (rules != undefined) {
                     if (rules.notBeforeDate != undefined &&
                         rules.notBeforeDate instanceof Date) {
                         var dt = new Date(year, month, day);
                         if (dt < $el.startOfDay(rules.notBeforeDate)) {
-                            this_day.addClass('unselectable');
+                            return true;
                         }
                     }
                     if (rules.notAfterDate != undefined &&
                         rules.notAfterDate instanceof Date) {
                         var dt = new Date(year, month, day);
                         if (dt >= $el.endOfDay(rules.notAfterDate)) {
-                            this_day.addClass('unselectable');
+                            return true;
                         }
                     }
                     if (rules.weekdays != undefined &&
                         rules.weekdays instanceof Array) {
                         for (var i in rules.weekdays) {
                             if (column == rules.weekdays[i]) {
-                                this_day.addClass('unselectable');
+                                return true;
                             }
                         }
                     }
@@ -152,7 +175,7 @@
                                 if (year == unselectableDate.getFullYear() &&
                                     month == unselectableDate.getMonth() &&
                                     day == unselectableDate.getDate()) {
-                                    this_day.addClass('unselectable');
+                                    return true;
                                 }
                             } else
                             if (rules.specificDates[i] instanceof jqt.calendar.DateRange) {
@@ -160,7 +183,7 @@
                                 var dateRange = rules.specificDates[i];
                                 if (dt >= $el.startOfDay(dateRange.startDate) &&
                                     dt < $el.endOfDay(dateRange.endDate)) {
-                                    this_day.addClass('unselectable');
+                                    return true;
                                 }
                             }
                         }
@@ -175,7 +198,7 @@
                                     dateRange.endDate instanceof jqt.calendar.AnnualDate) {
                                     if (dt >= dateRange.getAnnualStartDateForYear(year) &&
                                         dt <= dateRange.getAnnualEndDateForYear(year)) {
-                                        this_day.addClass('unselectable');
+                                        return true;
                                     }
                                 }
                             } else
@@ -183,7 +206,7 @@
                                 var unselectableDate = rules.specificAnnualDates[i];
                                 if (month == (unselectableDate.month - 1) &&
                                     day == unselectableDate.day) {
-                                    this_day.addClass('unselectable');
+                                    return true;
                                 }
                             } else
                             if (rules.specificAnnualDates[i] instanceof jqt.calendar.NthDayOfWeekInMonth) {
@@ -191,12 +214,23 @@
                                 if (year == unselectableDate.getFullYear() &&
                                     month == unselectableDate.getMonth() &&
                                     day == unselectableDate.getDate()) {
-                                    this_day.addClass('unselectable');
+                                    return true;
                                 }
                             }
                         }
                     }
                 }
+                return false;
+            }
+
+            //Markup Generation
+            jQuery.fn.dayMarkup = function(format, day, month, year, column) {
+                var $el = $(this);
+                var settings = $el.data('settings');
+                var this_day = $('<td/>');
+
+                if ($el.isUnselectable(day, month, year, column))
+                    this_day.addClass('unselectable');
 
                 if (format == 0) {
                     this_day.addClass('prevmonth');
@@ -326,6 +360,24 @@
             jQuery.fn.dateToString = function(date) {
                 return date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate();
             }
+            jQuery.fn.dateToUSFormatString = function(date) {
+                var d = date.getDate() + '';
+                var suf = '';
+                switch(d.substr(-1)) {
+                    case '1':
+                        suf = 'st';
+                        break;
+                    case '2':
+                        suf = 'nd';
+                        break;
+                    case '3':
+                        suf = 'rd';
+                        break;
+                    default:
+                        suf = 'th';
+                }
+                return dayNames[date.getDay()] + ', ' + d + suf + ' ' + monthNames[date.getMonth()] + ', ' + date.getFullYear();
+            }
             jQuery.fn.startOfDay = function(date) {
                 return new Date(date.getFullYear(), date.getMonth(), date.getDate());
             }
@@ -351,7 +403,8 @@
 
                 var returnable = '';
 
-                $.each($el.data('events')["" + year + "-" + month + "-" + day + ""],
+                // $.each($el.data('events')["" + year + "-" + month + "-" + day + ""],
+                $.each($el.data('events')["all"],
                 function(index, value) {
                     returnable += '<li><span>' + value.time + '</span>' + value.text + '</li>';
                 });
@@ -364,7 +417,7 @@
                 var $el = $(this);
 
                 // Days
-                $el.find('td').each(function(index, domEle) {
+                $el.find('td:not(.unselectable)').each(function(index, domEle) {
                     new FastButton(domEle, function(event) {
                         $el.removeSelectedCell();
                         var $td = $(event.target);
@@ -372,23 +425,22 @@
                         var clickedDate = $el.getCellDate($td);
                         $el.setToday();
 
-                        if ($td.hasClass('date_has_event')) {
-                            $el.getEvents(clickedDate);
-                        } else {
-                            $el.getNoEvents();
-                        }
+                        $el.setSelected(clickedDate);
+
+                        // if ($td.hasClass('date_has_event')) {
+                        //     $el.getEvents(clickedDate);
+                        // } else {
+                        //     $el.getNoEvents();
+                        // }
+
                         if (jQT.bars) {
                             jQT.setPageHeight();
                         }
 
-                        if ($td.hasClass('prevmonth') || $td.hasClass('nextmonth')) {
-                            $el.getCalendar({
-                                date: clickedDate
-                            });
-                        }
                         var settings = $el.data('settings');
-                        if (settings.callback != undefined) {
-                            settings.callback(clickedDate);
+                        settings.date = clickedDate;
+                        if ($td.hasClass('prevmonth') || $td.hasClass('nextmonth')) {
+                            $el.getCalendar(settings);
                         }
                     });
                 });
@@ -421,11 +473,21 @@
                     var clickedDate = $el.getCellDate($(this));
                     if (!$(this).hasClass("prevmonth") && !$(this).hasClass("nextmonth") && ($el.sameDay(date, clickedDate))) {
                         $(this).addClass('selected');
-                        if ($(this).hasClass('date_has_event')) {
-                            $el.getEvents(date);
-                        } else {
-                            $el.getNoEvents();
-                        }
+
+                        var events = {
+                            all: [{
+                                time: '',
+                                text: 'Selected date: ' + $el.dateToUSFormatString(date)
+                            }]
+                        };
+                        $el.data('events', events);
+                        $el.getEvents(date);
+
+                        // if ($(this).hasClass('date_has_event')) {
+                        //     $el.getEvents(date);
+                        // } else {
+                        //     $el.getNoEvents();
+                        // }
                     }
                 });
                 $el.setToday();
@@ -440,8 +502,12 @@
 
                 if ($el.find('.selected').length >= 1) {
                     var day = $(this).stringToDate($el.find('.selected').attr('datetime')).getDate();
-                } else {
+                } else
+                if ($el.find('.today').length >= 1) {
                     var day = $(this).stringToDate($el.find('.today').attr('datetime')).getDate();
+                } else {
+                    var today = new Date();
+                    var day = today.getDate();
                 }
                 var month = $el.find('table').data('month');
 
