@@ -24,6 +24,15 @@
 	months: Array of month names (default: ['January','February','March','April','May','June','July','August','September','October','November','December'])
 	weekstart: index of the position in the days array the week is to start on (default: 1)
 	callback: function to call on selecting a date, passing the date object
+	unselectableDateRules: {
+	    notBeforeDate: Date,
+	    notAfterDate: Date,
+	    weekDays: [], list of unselectable days of the week 0..6
+	    specificDates: [], list of jqt.calendar.DateRange(startDate:Date, endDate:Date) or Date
+	    specificAnnualDates: [] list of jqt.calendar.DateRange(startDate:jqt.calendar.AnnualDate, endDate:jqt.calendar.AnnualDate),
+	                            jqt.calendar.AnnualDate(month:int(1..12), day:int(1..31)) or
+	                            jqt.calendar.NthDayOfWeekInMonth(month:int(1..12), dayOfWeek:int(0..6), week:int(1..5))
+	}
 
 */
 
@@ -111,58 +120,82 @@
                 var settings = $el.data('settings');
                 var this_day = $('<td/>');
                 
-                if (settings.unselectableDateRules != undefined) {
-                    if (settings.unselectableDateRules.notBeforeDate != undefined &&
-                        settings.unselectableDateRules.notBeforeDate instanceof Date) {
+                var rules = settings.unselectableDateRules;
+                if (rules != undefined) {
+                    if (rules.notBeforeDate != undefined &&
+                        rules.notBeforeDate instanceof Date) {
                         var dt = new Date(year, month, day);
-                        if (dt < $el.startOfDay(settings.unselectableDateRules.notBeforeDate)) {
+                        if (dt < $el.startOfDay(rules.notBeforeDate)) {
                             this_day.addClass('unselectable');
                         }
                     }
-                    if (settings.unselectableDateRules.notAfterDate != undefined &&
-                        settings.unselectableDateRules.notAfterDate instanceof Date) {
+                    if (rules.notAfterDate != undefined &&
+                        rules.notAfterDate instanceof Date) {
                         var dt = new Date(year, month, day);
-                        if (dt > $el.endOfDay(settings.unselectableDateRules.notAfterDate)) {
+                        if (dt >= $el.endOfDay(rules.notAfterDate)) {
                             this_day.addClass('unselectable');
                         }
                     }
-                    if (settings.unselectableDateRules.weekdays != undefined &&
-                        settings.unselectableDateRules.weekdays instanceof Array) {
-                        for (var i in settings.unselectableDateRules.weekdays) {
-                            if (column == settings.unselectableDateRules.weekdays[i]) {
+                    if (rules.weekdays != undefined &&
+                        rules.weekdays instanceof Array) {
+                        for (var i in rules.weekdays) {
+                            if (column == rules.weekdays[i]) {
                                 this_day.addClass('unselectable');
                             }
                         }
                     }
-                    if (settings.unselectableDateRules.specificDates != undefined &&
-                        settings.unselectableDateRules.specificDates instanceof Array) {
-                        for (var i in settings.unselectableDateRules.specificDates) {
-                            if (settings.unselectableDateRules.specificDates[i] instanceof Date) {
-                                var unselectableDate = settings.unselectableDateRules.specificDates[i];
+                    if (rules.specificDates != undefined &&
+                        rules.specificDates instanceof Array) {
+                        for (var i in rules.specificDates) {
+                            if (rules.specificDates[i] instanceof Date) {
+                                var unselectableDate = rules.specificDates[i];
+                                if (year == unselectableDate.getFullYear() &&
+                                    month == unselectableDate.getMonth() &&
+                                    day == unselectableDate.getDate()) {
+                                    this_day.addClass('unselectable');
+                                }
+                            } else
+                            if (rules.specificDates[i] instanceof jqt.calendar.DateRange) {
+                                var dt = new Date(year, month, day);
+                                var dateRange = rules.specificDates[i];
+                                if (dt >= $el.startOfDay(dateRange.startDate) &&
+                                    dt < $el.endOfDay(dateRange.endDate)) {
+                                    this_day.addClass('unselectable');
+                                }
+                            }
+                        }
+                    }
+                    if (rules.specificAnnualDates != undefined &&
+                        rules.specificAnnualDates instanceof Array) {
+                        for (var i in rules.specificAnnualDates) {
+                            if (rules.specificAnnualDates[i] instanceof jqt.calendar.DateRange) {
+                                var dt = new Date(year, month, day);
+                                var dateRange = rules.specificAnnualDates[i];
+                                if (dateRange.startDate instanceof jqt.calendar.AnnualDate &&
+                                    dateRange.endDate instanceof jqt.calendar.AnnualDate) {
+                                    if (dt >= dateRange.getAnnualStartDateForYear(year) &&
+                                        dt <= dateRange.getAnnualEndDateForYear(year)) {
+                                        this_day.addClass('unselectable');
+                                    }
+                                }
+                            } else
+                            if (rules.specificAnnualDates[i] instanceof jqt.calendar.AnnualDate) {
+                                var unselectableDate = rules.specificAnnualDates[i];
+                                if (month == (unselectableDate.month - 1) &&
+                                    day == unselectableDate.day) {
+                                    this_day.addClass('unselectable');
+                                }
+                            } else
+                            if (rules.specificAnnualDates[i] instanceof jqt.calendar.NthDayOfWeekInMonth) {
+                                var unselectableDate = rules.specificAnnualDates[i].getDateForYear(year);
                                 if (year == unselectableDate.getFullYear() &&
                                     month == unselectableDate.getMonth() &&
                                     day == unselectableDate.getDate()) {
                                     this_day.addClass('unselectable');
                                 }
                             }
-                            if (settings.unselectableDateRules.specificDates[i] instanceof jqt.calendar.DateRange) {
-                                var dt = new Date(year, month, day);
-                                var dateRange = settings.unselectableDateRules.specificDates[i];
-                                if (dt >= $el.startOfDay(dateRange.startDate) &&
-                                    dt <= $el.endOfDay(dateRange.endDate)) {
-                                    this_day.addClass('unselectable');
-                                }
-                            }
                         }
                     }
-                    // if (settings.unselectableDateRules.specificAnnualDates != undefined &&
-                    //     settings.unselectableDateRules.specificAnnualDates instanceof Array) {
-                    //     for (var i in settings.unselectableDateRules.specificAnnualDates) {
-                    //         if (settings.unselectableDateRules.specificAnnualDates[i] instanceof AnnualDateRange) {
-                    //             var annualDateRange = settings.unselectableDateRules.specificAnnualDates[i];
-                    //         }
-                    //     }
-                    // }
                 }
 
                 if (format == 0) {
@@ -297,8 +330,7 @@
                 return new Date(date.getFullYear(), date.getMonth(), date.getDate());
             }
             jQuery.fn.endOfDay = function(date) {
-                var $el = $(this);
-                return $el.startOfDay(date) + 24*60*60*1000;
+                return new Date($(this).startOfDay(date).getTime() + 24*60*60*1000);
             }
             jQuery.fn.getEvents = function(date) {
                 var $el = $(this);
@@ -434,4 +466,64 @@ jqt.calendar = {};
 jqt.calendar.DateRange = function(startDate, endDate) {
     this.startDate = startDate;
     this.endDate = endDate;
+};
+
+jqt.calendar.AnnualDate = function(month, day) {
+    this.month = month;
+    this.day = day;
+};
+
+jqt.calendar.DateRange.prototype.getAnnualStartDateForYear = function(year) {
+    if (this.startDate != null &&
+        this.startDate instanceof jqt.calendar.AnnualDate) {
+        return new Date(year, this.startDate.month - 1, this.startDate.day);
+    }
+    return null;
+};
+
+jqt.calendar.DateRange.prototype.getAnnualEndDateForYear = function(year) {
+    if (this.startDate != null && this.endDate != null &&
+        this.startDate instanceof jqt.calendar.AnnualDate &&
+        this.endDate instanceof jqt.calendar.AnnualDate) {
+        var yr = year;
+        if (this.endDate.month < this.startDate.month) {
+            yr += 1;
+        }
+        return new Date(yr, this.endDate.month - 1, this.endDate.day);
+    }
+    return null;
+};
+
+jqt.calendar.AnnualDate.prototype.getDateForYear = function(year) {
+    if (this.month != undefined && isInt(this.month) &&
+        this.day != undefined && isInt(this.day)) {
+        return new Date(year, this.month - 1, this.day);
+    }
+};
+
+jqt.calendar.NthDayOfWeekInMonth = function(month, dayOfWeek, week) {
+    this.month = month;
+    this.dayOfWeek = dayOfWeek;
+    this.week = week;
+};
+
+jqt.calendar.NthDayOfWeekInMonth.prototype.getDateForYear = function(year) {
+    var i = this.week;
+    for (var d = 1; d < 32; d++) {
+        var dt = new Date(year, this.month - 1, d);
+        if (dt.getDay() == this.dayOfWeek) {
+            if (0 == --i) {
+                return dt;
+            }
+        }
+    }
+    return null;
+};
+
+function isInt(value) {
+    if ((parseFloat(value) == parseInt(value)) && !isNaN(value)) {
+        return true;
+    } else { 
+        return false;
+    } 
 }
