@@ -17,7 +17,29 @@
 		});
 	</script>
 	you can also call getCalendar with an options object
-			$('#any_id').getCalendar({date:variable_x, weekstart:variable_y});
+			$('#any_id').getCalendar({
+			    date:variable_x,
+			    weekstart:variable_y,
+                unselectableDateRules: {
+                    notBeforeDate: new Date(),
+                    notAfterDate: new Date(2012, 0, 4),
+                    weekdays: [0, 6],
+                    specificDates: [
+                        new jqt.calendar.DateRange(new Date(2011, 6, 5), new Date(2011, 6, 7)),
+                        new Date(2011, 9, 24)
+                    ],
+                    specificAnnualDates: [
+                        new jqt.calendar.DateRange(new jqt.calendar.AnnualDate(12, 27), new jqt.calendar.AnnualDate(12, 30)),
+                        new jqt.calendar.AnnualDate(9, 14),
+                        new jqt.calendar.NthDayOfWeekInMonth(8, 1, 3)
+                    ]
+                },
+                doneBtn: 'selectDateBtn',
+                callback: function(clickedDate) {
+                    $('#txdate').html($(this).dateToUSFormatString(clickedDate));
+                    jQT.goBack();
+                }
+			});
 	Options:
 	date: Date around which to render the initial calendar. Shows this date as selected (default: new Date())
 	days: Array of titles for the columns (default: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'])
